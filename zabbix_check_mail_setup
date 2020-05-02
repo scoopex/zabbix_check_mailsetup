@@ -104,7 +104,8 @@ def check_smtp_send(ident, smtp_config):
         server.sendmail(fromaddr, toaddr, msg)
         server.quit()
     except Exception as e:
-        print("Exception happened:")
+        sys.stdout.write("0\n")
+        sys.stderr.write("Exception happened:\n")
         sys.stderr.write('*' * 60 + "\n")
         sys.stderr.write("*** " + str(e) + "\n")
         sys.stderr.write('*' * 60 + "\n")
@@ -112,7 +113,7 @@ def check_smtp_send(ident, smtp_config):
         traceback.print_exc(file=sys.stderr)
         sys.stderr.write('-' * 60 + "\n")
         sys.exit(0)
-    sys.stdout.write("0\n")
+    sys.stdout.write("1\n")
     sys.exit(0)
 
 
@@ -156,12 +157,16 @@ def check_imap_receive(ident, imap_config):
     try:
         imap.select(folder, readonly=False)
         typ, msg_ids = imap.search(None, '(FROM "%s")' % fromaddr)
-        msg_ids = [msg_id.decode("utf-8") for msg_id in msg_ids]
+        #msg_ids = [msg_id.decode("utf-8") for msg_id in msg_ids]
+        pprint(msg_ids)
+        whites = re.compile(r'\s+')
+        msg_ids = whites.split(msg_ids[0].decode("utf-8"))
 
         delete_ids = []
         for imap_id in msg_ids:
             if imap_id == '':
                 continue
+            print(imap_id)
             typ, msg_data = imap.fetch(imap_id, '(RFC822)')
             for response_part in msg_data:
                 if isinstance(response_part, tuple):
@@ -188,8 +193,10 @@ def check_imap_receive(ident, imap_config):
         except:
             pass
         imap.logout()
-
-    print(timestamp)
+    if timestamp != 0:
+        print(time.time() - int(timestamp))
+    else:
+        print("0")
     sys.exit(0)
 
 

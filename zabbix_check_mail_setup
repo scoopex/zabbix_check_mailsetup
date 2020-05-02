@@ -194,7 +194,7 @@ def check_imap_receive(ident, imap_config):
             pass
         imap.logout()
     if timestamp != 0:
-        print(time.time() - int(timestamp))
+        print(int(time.time()) - int(timestamp))
     else:
         print("0")
     sys.exit(0)
@@ -229,7 +229,7 @@ parser_group.add_argument(
     '--smtp',
     nargs='?',
     type=str,
-    help='configuration file',
+    help='configuration name',
     default=None,
 )
 
@@ -237,7 +237,7 @@ parser_group.add_argument(
     '--imap',
     nargs='?',
     type=str,
-    help='configuration file',
+    help='configuration name',
     default=None,
 )
 

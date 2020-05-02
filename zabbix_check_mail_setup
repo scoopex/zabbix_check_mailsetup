@@ -74,11 +74,10 @@ def read_config(config_file):
 
     return config
 
-# https://yuji.wordpress.com/2011/06/22/python-imaplib-imap-example-with-gmail/
-def check_smtp_send(smtp_config):
 
+# https://yuji.wordpress.com/2011/06/22/python-imaplib-imap-example-with-gmail/
+def check_smtp_send(ident, smtp_config):
     try:
-        ident = smtp_config["ident"]
         fromaddr = smtp_config["from"]
         toaddr = smtp_config["to"]
         server_name = smtp_config["server"]
@@ -89,7 +88,6 @@ def check_smtp_send(smtp_config):
         sys.stderr.write("missing parameters in ")
         sys.stdout.write("0\n")
 
-    
     id_nr = int(time.time())
     subject = "MAIL ROUNDTRIP TESTMAIL %s :: %s\r\n" % (ident, id_nr)
     msg = ("From: %s\r\nTo: %s\r\nSubject: %s\r\n\r\n" % (fromaddr, toaddr, subject))
@@ -117,10 +115,9 @@ def check_smtp_send(smtp_config):
     sys.stdout.write("0\n")
     sys.exit(0)
 
-def check_imap_receive(imap_config):
 
+def check_imap_receive(ident, imap_config):
     try:
-        ident = imap_config["ident"]
         fromaddr = imap_config["from"]
         server_name = imap_config["server"]
         folder = imap_config["folder"]
@@ -136,7 +133,7 @@ def check_imap_receive(imap_config):
     imap = imaplib.IMAP4_SSL(server_name)
 
     try:
-       rv, data = imap.login(login, password)
+        rv, data = imap.login(login, password)
     except Exception as e:
         print("Exception happened:")
         sys.stderr.write('*' * 60 + "\n")
@@ -150,16 +147,16 @@ def check_imap_receive(imap_config):
     if args.debug:
         rv, mailboxes = imap.list()
         if rv == 'OK':
-           mailboxes = [ mailbox.decode("utf-8") for mailbox in mailboxes]
-           sys.stderr.write("Mailboxes:") 
-           for mailbox in mailboxes:
-              sys.stderr.write(mailbox+"\n") 
+            mailboxes = [mailbox.decode("utf-8") for mailbox in mailboxes]
+            sys.stderr.write("Mailboxes:")
+            for mailbox in mailboxes:
+                sys.stderr.write(mailbox + "\n")
 
-    timestamp=0
+    timestamp = 0
     try:
         imap.select(folder, readonly=False)
         typ, msg_ids = imap.search(None, '(FROM "%s")' % fromaddr)
-        msg_ids = [ msg_id.decode("utf-8") for msg_id in msg_ids]
+        msg_ids = [msg_id.decode("utf-8") for msg_id in msg_ids]
 
         delete_ids = []
         for imap_id in msg_ids:
@@ -167,21 +164,21 @@ def check_imap_receive(imap_config):
                 continue
             typ, msg_data = imap.fetch(imap_id, '(RFC822)')
             for response_part in msg_data:
-               if isinstance(response_part, tuple):
-                  msg = email.message_from_string(response_part[1].decode("utf-8"))
-                  if 'subject' not in msg:
-                      continue
-                  m = re.match(r".*:: (\d+)$", msg['subject'])
-                  if not m:
-                      continue
-                  delete_ids.append(imap_id)
-                  if int(m.group(1)) > timestamp:
-                      timestamp = int(m.group(1))
-                  if args.debug:
-                      for header in [ 'subject', 'to', 'from' ]:
-                          sys.stderr.write('%-8s: %s\n' % (header.upper(), msg[header]))
+                if isinstance(response_part, tuple):
+                    msg = email.message_from_string(response_part[1].decode("utf-8"))
+                    if 'subject' not in msg:
+                        continue
+                    m = re.match(r".*:: (\d+)$", msg['subject'])
+                    if not m:
+                        continue
+                    delete_ids.append(imap_id)
+                    if int(m.group(1)) > timestamp:
+                        timestamp = int(m.group(1))
+                    if args.debug:
+                        for header in ['subject', 'to', 'from']:
+                            sys.stderr.write('%-8s: %s\n' % (header.upper(), msg[header]))
         if len(delete_ids) > 0:
-            imap.store(",".join(delete_ids), '+FLAGS', r'(\Deleted)') 
+            imap.store(",".join(delete_ids), '+FLAGS', r'(\Deleted)')
             typ, response = imap.expunge()
             if args.debug:
                 sys.stderr.write("Expunged: %s\n" % response)
@@ -195,15 +192,16 @@ def check_imap_receive(imap_config):
     print(timestamp)
     sys.exit(0)
 
+
 ####################################################################################
 #### MAIN
 
 parser = argparse.ArgumentParser(
     description='perform device disovery for zabbix',
     formatter_class=argparse.RawTextHelpFormatter,
-#    epilog='''Example json configuration file:
-#		"freq": "300"
-#    '''
+    #    epilog='''Example json configuration file:
+    #		"freq": "300"
+    #    '''
 )
 
 parser.add_argument(
@@ -216,10 +214,8 @@ parser_group = parser.add_mutually_exclusive_group(required=True)
 
 parser_group.add_argument(
     '--discovery',
-    nargs='?',
-    type=str,
     help='Output discovery information',
-    default=None,
+    action='store_true',
 )
 
 parser_group.add_argument(
@@ -249,7 +245,6 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-
 # read the config
 if args.config is not None:
     config = read_config(args.config)
@@ -259,31 +254,23 @@ else:
 if args.debug:
     sys.stderr.write("** Effective config:\n%s\n" % json.dumps(config, indent=2))
 
-
-if args.discovery is not None:
-    if args.discovery not in [ "smtp",  "imap"]:
-        print("Error: specify smtp or imap")
-        sys.exit(1)
+if args.discovery:
     devices_discovered = {'data': []}
-    for config_c in (config[args.discovery]):
-        devices_discovered['data'].append({
-            "#NAME": config_c["ident"]
+    for config_c in config.keys():
+        devices_discovered['data'].append(
+            {
+                "#NAME": config_c
             }
         )
     print(json.dumps(devices_discovered, sort_keys=True))
+    sys.exit(0)
 
 if args.smtp is not None:
-    for config_c in (config["smtp"]):
-        if config_c["ident"] == args.smtp:
-            check_smtp_send(config_c)
-            break
+    check_smtp_send(args.smtp, config[args.smtp]["smtp"])
+    sys.exit(0)
 
 if args.imap is not None:
-    for config_c in (config["imap"]):
-        if config_c["ident"] == args.imap:
-            check_imap_receive(config_c)
-            break
-
-
+    check_imap_receive(args.imap, config[args.imap]["imap"])
+    sys.exit(0)
 
 sys.exit(0)

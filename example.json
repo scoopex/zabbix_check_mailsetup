@@ -1,48 +1,21 @@
 {
-        "smtp": [
-         {
-                "ident": "web.de_to_256bit.org",
-                "type": "smtp",
-                "server": "smtp.web.de",
-                "port": "587",
-                "login": "foobarbaz@web.de",
-                "password": "mypassword",
-                "from": "foobarbaz@web.de",
-                "to": "mxtest@256bit.org"
-         },
-         {
-                "ident": "256bit.org_to_web.de",
-                "type": "smtp",
-                "server": "256bit.org",
-                "port": "25",
-                "login": "testaccount",
-                "password": "mypassword",
-                "from": "mxtest111111@256bit.org",
-                "to": "foobarbaz@web.de"
-         }
-        ],
-        "imap": [
-           {
-                "ident": "web.de",
-                "type": "imap",
-                "server": "imap.web.de",
-                "port": "143",
-                "login": "foobarbaz@web.de",
-                "from": "mxtest111111@256bit.org",
-                "folder": "INBOX",
-                "password": "mypassword"
-           },
-           {
-                "ident": "256bit.org",
-                "type": "imap",
-                "server": "256bit.org",
-                "port": "143",
-                "login": "tester",
-                "from": "foobarbaz@web.de",
-                "folder": "INBOX",
-                "password": "mypassword"
-           }
-
-        ]
+  "256bit.org_to_web.de": {
+    "smtp": {
+      "server": "256bit.org",
+      "port": "25",
+      "login": "user1",
+      "password": "mypassword",
+      "from": "m222xtest@256bit.org",
+      "to": "s22222@web.de"
+    },
+    "imap": {
+      "server": "imap.web.de",
+      "port": "143",
+      "login": "s222222@web.de",
+      "from": "m222xtest@256bit.org",
+      "folder": "INBOX",
+      "password": "mypassword"
+    }
+  }
 }
 

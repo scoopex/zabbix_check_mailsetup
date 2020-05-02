@@ -1,0 +1,289 @@
+#!/usr/bin/env python3
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or
+#   (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License along
+#   with this program; if not, write to the Free Software Foundation, Inc.,
+#   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+# Marc Schoechlin <ms@256bit.org>
+
+import argparse
+import os
+import re
+import sys
+import json
+from pprint import pprint
+
+config_default = {
+}
+####################################################################################
+#### HELPERS
+
+import smtplib
+import sys
+import traceback
+import time
+import uuid
+import imaplib
+import email
+import email.header
+
+
+def my_random_string(string_length=10):
+    """Returns a random string of length string_length."""
+    random = str(uuid.uuid4())  # Convert UUID format to a Python string.
+    random = random.upper()  # Make all characters uppercase.
+    random = random.replace("-", "")  # Remove the UUID '-'.
+    return random[0:string_length]  # Return the random string.
+
+
+def read_config(config_file):
+    config = config_default
+    if os.path.exists(config_file):
+        if args.debug:
+            sys.stderr.write("reading config file %s\n" % config_file)
+        try:
+            fh = open(config_file, 'r')
+            content = fh.read()
+
+            # Remove multiline comments
+            content = re.sub('^\s*/\*.*?\*/\s*', '', content, 0, re.DOTALL | re.MULTILINE)
+            # Remove single line comments
+            content = re.sub('^\s*//.*$\n', '', content, 0, re.MULTILINE)
+
+            config = json.loads(content)
+
+            fh.close()
+        except FileNotFoundError:
+            sys.stderr.write("Config file does not exist\n")
+        except PermissionError:
+            sys.stderr.write("Could not read config file\n")
+        except json.decoder.JSONDecodeError:
+            sys.stderr.write("Could not parse JSON config file\n")
+        except:
+            sys.stderr.write("An unexpected error occured while reading config file\n")
+
+    return config
+
+# https://yuji.wordpress.com/2011/06/22/python-imaplib-imap-example-with-gmail/
+def check_smtp_send(smtp_config):
+
+    try:
+        ident = smtp_config["ident"]
+        fromaddr = smtp_config["from"]
+        toaddr = smtp_config["to"]
+        server_name = smtp_config["server"]
+        port = smtp_config["port"]
+        login = smtp_config["login"]
+        password = smtp_config["password"]
+    except:
+        sys.stderr.write("missing parameters in ")
+        sys.stdout.write("0\n")
+
+    
+    id_nr = int(time.time())
+    subject = "MAIL ROUNDTRIP TESTMAIL %s :: %s\r\n" % (ident, id_nr)
+    msg = ("From: %s\r\nTo: %s\r\nSubject: %s\r\n\r\n" % (fromaddr, toaddr, subject))
+    for n in range(1, 100):
+        msg += my_random_string(n) + " \r\n"
+
+    try:
+        server = smtplib.SMTP(server_name, port)
+        if args.debug:
+            server.set_debuglevel(1)
+        server.starttls()
+        server.ehlo()
+        server.login(login, password)
+        server.sendmail(fromaddr, toaddr, msg)
+        server.quit()
+    except Exception as e:
+        print("Exception happened:")
+        sys.stderr.write('*' * 60 + "\n")
+        sys.stderr.write("*** " + str(e) + "\n")
+        sys.stderr.write('*' * 60 + "\n")
+        sys.stderr.write("\n")
+        traceback.print_exc(file=sys.stderr)
+        sys.stderr.write('-' * 60 + "\n")
+        sys.exit(0)
+    sys.stdout.write("0\n")
+    sys.exit(0)
+
+def check_imap_receive(imap_config):
+
+    try:
+        ident = imap_config["ident"]
+        fromaddr = imap_config["from"]
+        server_name = imap_config["server"]
+        folder = imap_config["folder"]
+        port = imap_config["port"]
+        login = imap_config["login"]
+        password = imap_config["password"]
+    except:
+        sys.stderr.write("missing parameters in ")
+        sys.stdout.write("0\n")
+
+    if args.debug:
+        imaplib.Debug = 4
+    imap = imaplib.IMAP4_SSL(server_name)
+
+    try:
+       rv, data = imap.login(login, password)
+    except Exception as e:
+        print("Exception happened:")
+        sys.stderr.write('*' * 60 + "\n")
+        sys.stderr.write("*** " + str(e) + "\n")
+        sys.stderr.write('*' * 60 + "\n")
+        sys.stderr.write("\n")
+        traceback.print_exc(file=sys.stderr)
+        sys.stderr.write('-' * 60 + "\n")
+        sys.exit(0)
+
+    if args.debug:
+        rv, mailboxes = imap.list()
+        if rv == 'OK':
+           mailboxes = [ mailbox.decode("utf-8") for mailbox in mailboxes]
+           sys.stderr.write("Mailboxes:") 
+           for mailbox in mailboxes:
+              sys.stderr.write(mailbox+"\n") 
+
+    timestamp=0
+    try:
+        imap.select(folder, readonly=False)
+        typ, msg_ids = imap.search(None, '(FROM "%s")' % fromaddr)
+        msg_ids = [ msg_id.decode("utf-8") for msg_id in msg_ids]
+
+        delete_ids = []
+        for imap_id in msg_ids:
+            if imap_id == '':
+                continue
+            typ, msg_data = imap.fetch(imap_id, '(RFC822)')
+            for response_part in msg_data:
+               if isinstance(response_part, tuple):
+                  msg = email.message_from_string(response_part[1].decode("utf-8"))
+                  if 'subject' not in msg:
+                      continue
+                  m = re.match(r".*:: (\d+)$", msg['subject'])
+                  if not m:
+                      continue
+                  delete_ids.append(imap_id)
+                  if int(m.group(1)) > timestamp:
+                      timestamp = int(m.group(1))
+                  if args.debug:
+                      for header in [ 'subject', 'to', 'from' ]:
+                          sys.stderr.write('%-8s: %s\n' % (header.upper(), msg[header]))
+        if len(delete_ids) > 0:
+            imap.store(",".join(delete_ids), '+FLAGS', r'(\Deleted)') 
+            typ, response = imap.expunge()
+            if args.debug:
+                sys.stderr.write("Expunged: %s\n" % response)
+    finally:
+        try:
+            imap.close()
+        except:
+            pass
+        imap.logout()
+
+    print(timestamp)
+    sys.exit(0)
+
+####################################################################################
+#### MAIN
+
+parser = argparse.ArgumentParser(
+    description='perform device disovery for zabbix',
+    formatter_class=argparse.RawTextHelpFormatter,
+#    epilog='''Example json configuration file:
+#		"freq": "300"
+#    '''
+)
+
+parser.add_argument(
+    '--debug',
+    help='Output debug information',
+    action='store_true',
+)
+
+parser_group = parser.add_mutually_exclusive_group(required=True)
+
+parser_group.add_argument(
+    '--discovery',
+    nargs='?',
+    type=str,
+    help='Output discovery information',
+    default=None,
+)
+
+parser_group.add_argument(
+    '--smtp',
+    nargs='?',
+    type=str,
+    help='configuration file',
+    default=None,
+)
+
+parser_group.add_argument(
+    '--imap',
+    nargs='?',
+    type=str,
+    help='configuration file',
+    default=None,
+)
+
+parser.add_argument(
+    '--config',
+    nargs='?',
+    type=str,
+    help='configuration file',
+    default=None,
+    required=True,
+)
+
+args = parser.parse_args()
+
+
+# read the config
+if args.config is not None:
+    config = read_config(args.config)
+else:
+    config = config_default
+
+if args.debug:
+    sys.stderr.write("** Effective config:\n%s\n" % json.dumps(config, indent=2))
+
+
+if args.discovery is not None:
+    if args.discovery not in [ "smtp",  "imap"]:
+        print("Error: specify smtp or imap")
+        sys.exit(1)
+    devices_discovered = {'data': []}
+    for config_c in (config[args.discovery]):
+        devices_discovered['data'].append({
+            "#NAME": config_c["ident"]
+            }
+        )
+    print(json.dumps(devices_discovered, sort_keys=True))
+
+if args.smtp is not None:
+    for config_c in (config["smtp"]):
+        if config_c["ident"] == args.smtp:
+            check_smtp_send(config_c)
+            break
+
+if args.imap is not None:
+    for config_c in (config["imap"]):
+        if config_c["ident"] == args.imap:
+            check_imap_receive(config_c)
+            break
+
+
+
+sys.exit(0)

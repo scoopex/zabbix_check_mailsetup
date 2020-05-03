@@ -246,8 +246,8 @@ parser.add_argument(
     nargs='?',
     type=str,
     help='configuration file',
-    default=None,
-    required=True,
+    default=os.path.realpath(os.path.dirname(os.path.realpath(__file__)))+"/config.json",
+    #required=True,
 )
 
 args = parser.parse_args()

@@ -266,7 +266,7 @@ if args.discovery:
     for config_c in config.keys():
         devices_discovered['data'].append(
             {
-                "#NAME": config_c
+                "{#NAME}": config_c
             }
         )
     print(json.dumps(devices_discovered, sort_keys=True))

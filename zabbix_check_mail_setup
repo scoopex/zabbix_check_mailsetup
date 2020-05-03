@@ -157,8 +157,6 @@ def check_imap_receive(ident, imap_config):
     try:
         imap.select(folder, readonly=False)
         typ, msg_ids = imap.search(None, '(FROM "%s")' % fromaddr)
-        #msg_ids = [msg_id.decode("utf-8") for msg_id in msg_ids]
-        pprint(msg_ids)
         whites = re.compile(r'\s+')
         msg_ids = whites.split(msg_ids[0].decode("utf-8"))
 
@@ -166,7 +164,6 @@ def check_imap_receive(ident, imap_config):
         for imap_id in msg_ids:
             if imap_id == '':
                 continue
-            print(imap_id)
             typ, msg_data = imap.fetch(imap_id, '(RFC822)')
             for response_part in msg_data:
                 if isinstance(response_part, tuple):

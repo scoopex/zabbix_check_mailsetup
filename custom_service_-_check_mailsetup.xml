@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<zabbix_export>
+    <version>6.4</version>
+    <template_groups>
+        <template_group>
+            <uuid>7df96b18c230490a9a0a9e2307226338</uuid>
+            <name>Templates</name>
+        </template_group>
+    </template_groups>
+    <templates>
+        <template>
+            <uuid>5f933107d6464bbebed61d6f60eb9998</uuid>
+            <template>Custom - Service - Check Mailsetup</template>
+            <name>Custom - Service - Check Mailsetup</name>
+            <groups>
+                <group>
+                    <name>Templates</name>
+                </group>
+            </groups>
+            <discovery_rules>
+                <discovery_rule>
+                    <uuid>ec3a1a88e1dc4a01944e6464de91f85b</uuid>
+                    <name>Mailsetup Checks</name>
+                    <type>EXTERNAL</type>
+                    <key>zabbix_check_mail_setup[--discovery]</key>
+                    <delay>1h</delay>
+                    <lifetime>14d</lifetime>
+                    <item_prototypes>
+                        <item_prototype>
+                            <uuid>bcc229b93bce4830aacd72c5a89936c6</uuid>
+                            <name>{#NAME} Mailtest IMAP Receive</name>
+                            <type>EXTERNAL</type>
+                            <key>zabbix_check_mail_setup[--imap,{#NAME}]</key>
+                            <delay>2h</delay>
+                            <trends>0</trends>
+                            <units>s</units>
+                            <tags>
+                                <tag>
+                                    <tag>Application</tag>
+                                    <value>Check Mailsetup</value>
+                                </tag>
+                            </tags>
+                            <trigger_prototypes>
+                                <trigger_prototype>
+                                    <uuid>5e01bd15c5e84be682c19dbb4159222b</uuid>
+                                    <expression>nodata(/Custom - Service - Check Mailsetup/zabbix_check_mail_setup[--imap,{#NAME}],2h)=1</expression>
+                                    <name>Check for imap-received mails for {#NAME} - nodata</name>
+                                    <priority>WARNING</priority>
+                                </trigger_prototype>
+                                <trigger_prototype>
+                                    <uuid>1b2fba9c2c084031bc413edc934bbfc4</uuid>
+                                    <expression>last(/Custom - Service - Check Mailsetup/zabbix_check_mail_setup[--imap,{#NAME}])&lt;=0</expression>
+                                    <name>Check for imap-received mails for {#NAME} &gt; 0</name>
+                                    <priority>WARNING</priority>
+                                    <dependencies>
+                                        <dependency>
+                                            <name>Check for imap-received mails for {#NAME} - nodata</name>
+                                            <expression>nodata(/Custom - Service - Check Mailsetup/zabbix_check_mail_setup[--imap,{#NAME}],2h)=1</expression>
+                                        </dependency>
+                                    </dependencies>
+                                </trigger_prototype>
+                            </trigger_prototypes>
+                        </item_prototype>
+                        <item_prototype>
+                            <uuid>f55498094e414a969c378f35eac69e60</uuid>
+                            <name>{#NAME} Mailtest SMTP Send</name>
+                            <type>EXTERNAL</type>
+                            <key>zabbix_check_mail_setup[--smtp,{#NAME}]</key>
+                            <delay>1h</delay>
+                            <trends>0</trends>
+                            <tags>
+                                <tag>
+                                    <tag>Application</tag>
+                                    <value>Check Mailsetup</value>
+                                </tag>
+                            </tags>
+                            <trigger_prototypes>
+                                <trigger_prototype>
+                                    <uuid>7081c4caf6a14dd4962ff9c8688029b8</uuid>
+                                    <expression>nodata(/Custom - Service - Check Mailsetup/zabbix_check_mail_setup[--smtp,{#NAME}],2h)=1</expression>
+                                    <name>Try to sent mail by smtp for {#NAME} - nodata</name>
+                                    <priority>WARNING</priority>
+                                </trigger_prototype>
+                                <trigger_prototype>
+                                    <uuid>7535eb6954dc46e893d46c7cb61c9061</uuid>
+                                    <expression>last(/Custom - Service - Check Mailsetup/zabbix_check_mail_setup[--smtp,{#NAME}]) &lt;= 0</expression>
+                                    <name>Try to sent mail by smtp for {#NAME} &lt; 0</name>
+                                    <priority>WARNING</priority>
+                                    <dependencies>
+                                        <dependency>
+                                            <name>Try to sent mail by smtp for {#NAME} - nodata</name>
+                                            <expression>nodata(/Custom - Service - Check Mailsetup/zabbix_check_mail_setup[--smtp,{#NAME}],2h)=1</expression>
+                                        </dependency>
+                                    </dependencies>
+                                </trigger_prototype>
+                            </trigger_prototypes>
+                        </item_prototype>
+                    </item_prototypes>
+                    <graph_prototypes>
+                        <graph_prototype>
+                            <uuid>7c6e4fae1d6c439189e7a8d054cd4e2e</uuid>
+                            <name>{#NAME} Mail Transfer</name>
+                            <ymin_type_1>FIXED</ymin_type_1>
+                            <graph_items>
+                                <graph_item>
+                                    <color>1A7C11</color>
+                                    <yaxisside>RIGHT</yaxisside>
+                                    <calc_fnc>MAX</calc_fnc>
+                                    <item>
+                                        <host>Custom - Service - Check Mailsetup</host>
+                                        <key>zabbix_check_mail_setup[--imap,{#NAME}]</key>
+                                    </item>
+                                </graph_item>
+                                <graph_item>
+                                    <sortorder>1</sortorder>
+                                    <color>F63100</color>
+                                    <calc_fnc>MAX</calc_fnc>
+                                    <item>
+                                        <host>Custom - Service - Check Mailsetup</host>
+                                        <key>zabbix_check_mail_setup[--smtp,{#NAME}]</key>
+                                    </item>
+                                </graph_item>
+                            </graph_items>
+                        </graph_prototype>
+                    </graph_prototypes>
+                </discovery_rule>
+            </discovery_rules>
+            <dashboards>
+                <dashboard>
+                    <uuid>d5800f8a427a4d21ab5d1b6977f8f84d</uuid>
+                    <name>Custom - Service - Check Mailsetup</name>
+                    <pages>
+                        <page>
+                            <widgets>
+                                <widget>
+                                    <type>graphprototype</type>
+                                    <width>24</width>
+                                    <height>7</height>
+                                    <fields>
+                                        <field>
+                                            <type>INTEGER</type>
+                                            <name>columns</name>
+                                            <value>1</value>
+                                        </field>
+                                        <field>
+                                            <type>GRAPH_PROTOTYPE</type>
+                                            <name>graphid</name>
+                                            <value>
+                                                <host>Custom - Service - Check Mailsetup</host>
+                                                <name>{#NAME} Mail Transfer</name>
+                                            </value>
+                                        </field>
+                                    </fields>
+                                </widget>
+                            </widgets>
+                        </page>
+                    </pages>
+                </dashboard>
+            </dashboards>
+            <valuemaps>
+                <valuemap>
+                    <uuid>4f42f35122284311a533781807501cfd</uuid>
+                    <name>Service state</name>
+                    <mappings>
+                        <mapping>
+                            <value>0</value>
+                            <newvalue>Down</newvalue>
+                        </mapping>
+                        <mapping>
+                            <value>1</value>
+                            <newvalue>Up</newvalue>
+                        </mapping>
+                    </mappings>
+                </valuemap>
+            </valuemaps>
+        </template>
+    </templates>
+</zabbix_export>
